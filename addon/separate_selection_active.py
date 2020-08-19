@@ -2,8 +2,8 @@
 
 bl_info = {
     "name": "Separate Selection Active",
-    "blender": (2, 82, 7),
-    "version": "0.1.0",
+    "blender": (2, 90, 0),
+    "version": "0.1.1",
     "category": "Mesh",
 }
 
@@ -50,13 +50,19 @@ class SeparateSelectionActive(bpy.types.Operator):
                 self.report({'INFO'},f"Set active object to: {obj.name}")
         return {'FINISHED'}
 
+# A menu inject into View3D > Edit > Mesh tab
+def _menu_func(self, context):
+    self.layout.operator(SeparateSelectionActive.bl_idname)
 
 def register():
     bpy.utils.register_class(SeparateSelectionActive)
+    bpy.types.VIEW3D_MT_edit_mesh.append(_menu_func)
 
 
 def unregister():
     bpy.utils.unregister_class(SeparateSelectionActive)
+    bpy.types.VIEW3D_MT_edit_mesh.remove(_menu_func)
+    
 
 
 if __name__ == "__main__":
