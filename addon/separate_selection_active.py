@@ -50,7 +50,7 @@ class SeparateSelectionActive(bpy.types.Operator):
     """Separate object by selection and set it as active object."""
     bl_idname = "mesh.select_separate_active"
     bl_label = "Separate Selection Active"
-
+    bl_options = {'REGISTER', 'UNDO_GROUPED'}
     # An enum for prompt dialog
     separate_method: _separate_method_enum
 
@@ -61,7 +61,7 @@ class SeparateSelectionActive(bpy.types.Operator):
     def invoke(self, context, event):
         addon_prefs = context.preferences.addons[__name__].preferences
         # Prompt to ask a method to separate
-        if addon_prefs.get('use_invoke', True):
+        if addon_prefs.get('use_invoke', False):
             return context.window_manager.invoke_props_dialog(self)
         else:
             return self.execute(context)
@@ -86,7 +86,7 @@ class SeparateSelectionActive(bpy.types.Operator):
 # A menu inject into View3D > Edit > Mesh tab
 def _menu_func(self, context):
     addon_prefs = context.preferences.addons[__name__].preferences
-    if addon_prefs.get('use_invoke',True):
+    if addon_prefs.get('use_invoke', False):
         self.layout.operator(SeparateSelectionActive.bl_idname)
     else:
         self.layout.operator_menu_enum(
