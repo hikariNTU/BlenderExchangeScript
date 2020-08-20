@@ -1,7 +1,8 @@
 # Original Question in BSE
-# 
+# [Is there a way to create a loc/rot/scale shortcut in the context menu?]
+# (https://blender.stackexchange.com/questions/190176/is-there-a-way-to-create-a-loc-rot-scale-shortcut-in-the-context-menu/)
+
 import bpy
-from bpy.types import Menu
 
 bl_info = {
     "name": "Toolset in right click context menu",
