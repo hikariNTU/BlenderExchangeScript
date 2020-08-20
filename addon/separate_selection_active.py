@@ -27,6 +27,11 @@ class SSAAddonPreferences(AddonPreferences):
         description="Show popup when calling operator",
         default=False,
     )
+    show_info: BoolProperty(
+        name="Show operator information",
+        description="Show Info when operator is finish.",
+        default=True,
+    )
 
     def draw(self, context):
         layout = self.layout
@@ -67,6 +72,8 @@ class SeparateSelectionActive(bpy.types.Operator):
             return self.execute(context)
 
     def execute(self, context):
+        addon_prefs = context.preferences.addons[__name__].preferences
+        show_info = addon_prefs.get('show_info', True)
         org_obj_list = {o.name for o in context.selected_objects}
 
         # Separate using selected method
@@ -79,7 +86,8 @@ class SeparateSelectionActive(bpy.types.Operator):
             else:
                 # Set the new created object to active
                 context.view_layer.objects.active = obj
-                self.report({'INFO'}, f"Set active object to: {obj.name}")
+                if show_info:
+                    self.report({'INFO'}, f"Set active object to: {obj.name}")
         return {'FINISHED'}
 
 
