@@ -169,6 +169,10 @@ class TEXT_PT_cells(bpy.types.Panel):
         layout = self.layout
         row = layout.row()
         row.prop(context.scene, 'cell_live_check', text="Live Check")
+        if not context.area.spaces.active.text:
+            row = layout.row()
+            row.label(text="No cell found in text editor.")
+            return
         live_check = context.scene.cell_live_check
         if live_check:
             cells = self.check_cell(context)
