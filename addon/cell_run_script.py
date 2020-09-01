@@ -30,19 +30,31 @@ bl_info = {
     "name": "Run cell script in python",
     "description": "Provide the ability to use VS-like region and endregion tag for cell execute script in Blender text editor.",
     "author": "hikariTW",
-    "version": (0, 3),
+    "version": (0, 3, 1),
     "blender": (2, 80, 0),
     "location": "TextEditor",
     "support": "TESTING",
     "category": "Interface",
 }
 
-# Specified tag.
-_START_TAG = '# region'
-_END_TAG = '# endregion'
 
-# link between each cell call
-_CELL_EXEC_LOCAL = {}
+class Tag:
+    # Specified tag.
+    _START_TAG = '# region'
+    _END_TAG = '# endregion'
+
+    @classmethod
+    def start(cls, s: str) -> bool:
+        return s.lstrip().startswith(cls._START_TAG)
+
+    @classmethod
+    def end(cls, s: str) -> bool:
+        return s.lstrip().startswith(cls._END_TAG)
+
+    @classmethod
+    def get_name(cls, s: str, default: str = 'no name') -> bool:
+        name = s.lstrip()[len(cls._START_TAG) :].strip()
+        return name if name else default
 
 
 class TEXT_OT_check_cell(bpy.types.Operator):
@@ -65,21 +77,21 @@ class TEXT_OT_check_cell(bpy.types.Operator):
         stack = []
         cells = {}
         for idx, line in enumerate(c_lines):
-            if line.startswith(_START_TAG):
-                stack.append((line[len(_START_TAG) :], idx))
-            elif line.startswith(_END_TAG):
+            if Tag.start(line):
+                stack.append((Tag.get_name(line), idx))
+            elif Tag.end(line):
                 if len(stack) == 0:
                     continue  # skip for unexpected end region
                 cell_name, idx_start = stack.pop()
                 cells[idx_start] = (
-                    cell_name.strip() if cell_name.strip() else 'no name',
+                    cell_name,
                     idx_start,
                     idx,
                 )
         for cell_name, idx_start in stack:
             # Fill unmatched block
             cells[idx_start] = (
-                cell_name.strip() if cell_name.strip() else 'no name',
+                cell_name,
                 idx_start,
                 len(c_lines) - 1,
             )
@@ -101,6 +113,8 @@ class TEXT_OT_run_cell_script(bpy.types.Operator):
     bl_idname = "text.run_cell_script"
     bl_label = "Run current cell"
     bl_options = {'REGISTER'}
+    # link between each cell call using class attribute.
+    _CELL_EXEC_LOCAL = {}
     # fmt: off
     force_index: bpy.props.IntProperty(
         name="Use this line index",
@@ -116,7 +130,7 @@ class TEXT_OT_run_cell_script(bpy.types.Operator):
     @staticmethod
     def get_closest_idx(c_lines, current_idx):
         for i in range(current_idx, -1, -1):
-            if c_lines[i].startswith(_START_TAG):
+            if Tag.start(c_lines[i]):
                 return i
         return -1
 
@@ -136,8 +150,8 @@ class TEXT_OT_run_cell_script(bpy.types.Operator):
             )
 
             self.report({'INFO'}, f"Execute cell: ({start+1}:{end+1}) {name}")
-            cell_code_str = '\n'.join(c_lines[start:end])
-            global _CELL_EXEC_LOCAL
+            cell_code_str = '\n'.join(c_lines[start:end+1])
+            # global _CELL_EXEC_LOCAL
             exec(
                 compile(
                     cell_code_str,
@@ -145,7 +159,7 @@ class TEXT_OT_run_cell_script(bpy.types.Operator):
                     mode='exec',
                 ),
                 {},  # ignore global
-                _CELL_EXEC_LOCAL,  # reuse local
+                self._CELL_EXEC_LOCAL,  # reuse local
             )
         else:
             self.report({'WARNING'}, "No cell found.")
@@ -194,7 +208,7 @@ class TEXT_PT_cells(bpy.types.Panel):
             for name, start, end in sorted(cells.values(), key=lambda x: x[1]):
                 row = layout.row()
                 row.label(
-                    text=f"[{start+1}:{end+1}) {name}",
+                    text=f"[{start+1}:{end+1}] {name}",
                     icon="LINENUMBERS_OFF" if start != cell_idx else "LINENUMBERS_ON",
                     #  Show ON in closest cell block.
                 )
@@ -219,7 +233,6 @@ def register():
         name="Live check text editor cell",
         description="Live check text editor cell",
         default=True,
-        options={'SKIP_SAVE'},
     )
     bpy.types.Scene.cells_json = bpy.props.StringProperty(
         name="Script cell stored in json",
